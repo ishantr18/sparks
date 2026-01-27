@@ -305,6 +305,7 @@ const UI = {
         this.elements.playerDuration.textContent = '0:00';
         this.elements.playerBarFill.style.width = '0%';
         this.elements.btnPlayPause.textContent = '▶';
+        this.elements.btnSpeed.textContent = `${Storage.getTTSRate() || 1}x`;
     },
 
     /**

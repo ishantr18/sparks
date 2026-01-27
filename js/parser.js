@@ -192,9 +192,14 @@ const Parser = {
      * @returns {number} Estimated seconds
      */
     estimateTTSDuration(text, rate = 1.0) {
+        if (!text || !text.trim()) return 0;
+
         // Average TTS speaks about 150 words per minute at 1.0x
         const wordsPerMinute = 150 * rate;
-        const words = text.split(/\s+/).length;
-        return Math.round((words / wordsPerMinute) * 60);
+        const words = text.trim().split(/\s+/).filter(w => w).length;
+        const duration = Math.round((words / wordsPerMinute) * 60);
+
+        // Minimum 1 second if there's any text
+        return Math.max(duration, words > 0 ? 1 : 0);
     }
 };

@@ -125,10 +125,12 @@ const TTS = {
         this.savedPosition = this.currentPosition;
         this.savedSentenceIndex = this.currentSentenceIndex;
 
-        this.synth.cancel();
+        // Set flags BEFORE cancel to prevent onend handler from running
         this.isPaused = true;
         this.isPlaying = false;
         this.stopProgressTracking();
+
+        this.synth.cancel();
     },
 
     /**
@@ -155,10 +157,12 @@ const TTS = {
      * Stop playback completely
      */
     stop() {
-        this.synth.cancel();
+        // Set flags BEFORE cancel to prevent onend handler from running
         this.isPlaying = false;
         this.isPaused = false;
         this.stopProgressTracking();
+
+        this.synth.cancel();
     },
 
     /**
@@ -203,10 +207,13 @@ const TTS = {
         this.currentPosition = seconds;
 
         // Calculate which sentence to start from
-        // Estimate: each sentence takes (totalDuration / sentences.length) seconds
-        const avgSentenceDuration = this.totalDuration / this.sentences.length;
-        this.currentSentenceIndex = Math.floor(seconds / avgSentenceDuration);
-        this.currentSentenceIndex = Math.max(0, Math.min(this.currentSentenceIndex, this.sentences.length - 1));
+        if (this.sentences.length > 0 && this.totalDuration > 0) {
+            const avgSentenceDuration = this.totalDuration / this.sentences.length;
+            this.currentSentenceIndex = Math.floor(seconds / avgSentenceDuration);
+            this.currentSentenceIndex = Math.max(0, Math.min(this.currentSentenceIndex, this.sentences.length - 1));
+        } else {
+            this.currentSentenceIndex = 0;
+        }
 
         this.notifyProgress();
     },
@@ -231,14 +238,25 @@ const TTS = {
         // Recalculate duration
         this.totalDuration = Parser.estimateTTSDuration(this.text, this.rate);
 
-        // If playing, restart from current position
-        if (this.isPlaying || this.isPaused) {
-            const wasPlaying = this.isPlaying;
-            this.stop();
-            if (wasPlaying) {
-                this.play();
-            }
+        // If playing, restart from current position with new rate
+        if (this.isPlaying) {
+            // Save position, stop, and restart
+            const savedPos = this.currentPosition;
+            const savedIdx = this.currentSentenceIndex;
+
+            this.isPlaying = false;
+            this.isPaused = false;
+            this.stopProgressTracking();
+            this.synth.cancel();
+
+            // Restart with saved position
+            this.currentPosition = savedPos;
+            this.currentSentenceIndex = savedIdx;
+            this.isPlaying = true;
+            this.speakFromIndex(this.currentSentenceIndex);
+            this.startProgressTracking();
         }
+        // If paused, just update the rate - it will use new rate on resume
     },
 
     /**
@@ -260,8 +278,10 @@ const TTS = {
      * Update position estimate based on current sentence
      */
     updatePositionFromSentence() {
-        const avgSentenceDuration = this.totalDuration / this.sentences.length;
-        this.currentPosition = this.currentSentenceIndex * avgSentenceDuration;
+        if (this.sentences.length > 0 && this.totalDuration > 0) {
+            const avgSentenceDuration = this.totalDuration / this.sentences.length;
+            this.currentPosition = this.currentSentenceIndex * avgSentenceDuration;
+        }
         this.notifyProgress();
     },
 
@@ -313,7 +333,10 @@ const TTS = {
             this.onProgressCallback({
                 currentPosition: this.currentPosition,
                 totalDuration: this.totalDuration,
-                percent: this.getProgressPercent()
+                percent: this.getProgressPercent(),
+                rate: this.rate,
+                isPlaying: this.isPlaying,
+                isPaused: this.isPaused
             });
         }
     },
