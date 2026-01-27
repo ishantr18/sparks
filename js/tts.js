@@ -18,6 +18,8 @@ const TTS = {
     saveProgressCallback: null,
     onEndCallback: null,
     onProgressCallback: null,
+    savedPosition: 0,        // for pause/resume
+    savedSentenceIndex: 0,   // for pause/resume
 
     /**
      * Initialize TTS with text content
@@ -114,11 +116,16 @@ const TTS = {
 
     /**
      * Pause playback
+     * Note: iOS Safari has issues with synth.pause(), so we cancel and save position
      */
     pause() {
         if (!this.isPlaying) return;
 
-        this.synth.pause();
+        // Save current position before stopping
+        this.savedPosition = this.currentPosition;
+        this.savedSentenceIndex = this.currentSentenceIndex;
+
+        this.synth.cancel();
         this.isPaused = true;
         this.isPlaying = false;
         this.stopProgressTracking();
@@ -126,13 +133,21 @@ const TTS = {
 
     /**
      * Resume playback
+     * Note: iOS Safari has issues with synth.resume(), so we restart from saved position
      */
     resume() {
         if (!this.isPaused) return;
 
-        this.synth.resume();
         this.isPaused = false;
         this.isPlaying = true;
+
+        // Restore position and restart
+        if (this.savedSentenceIndex !== undefined) {
+            this.currentSentenceIndex = this.savedSentenceIndex;
+            this.currentPosition = this.savedPosition || 0;
+        }
+
+        this.speakFromIndex(this.currentSentenceIndex);
         this.startProgressTracking();
     },
 
@@ -232,7 +247,9 @@ const TTS = {
      */
     cycleRate() {
         const rates = CONFIG.TTS_RATES;
-        const currentIndex = rates.indexOf(this.rate);
+        // Find closest rate index (handles floating point comparison)
+        let currentIndex = rates.findIndex(r => Math.abs(r - this.rate) < 0.01);
+        if (currentIndex === -1) currentIndex = 0;
         const nextIndex = (currentIndex + 1) % rates.length;
         const newRate = rates[nextIndex];
         this.setRate(newRate);
