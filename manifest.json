@@ -1,8 +1,8 @@
 {
   "name": "Sparks",
   "short_name": "Sparks",
-  "description": "Wisdom that ignites ideas - your personal book summary library",
-  "start_url": "/sparks/",
+  "description": "Igniting Ideas!",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f5f7",
   "theme_color": "#667eea",
