@@ -42,10 +42,13 @@ const CONFIG = {
     },
 
     // Voices to exclude (case-insensitive partial match)
-    TTS_EXCLUDED_VOICES: ['samantha'],
+    TTS_EXCLUDED_VOICES: [],
 
     // Preferred voices (in order of preference, case-insensitive partial match)
-    TTS_PREFERRED_VOICES: ['enhanced', 'premium', 'ava', 'daniel', 'karen', 'siri', 'google', 'natural'],
+    TTS_PREFERRED_VOICES: ['evan', 'allison', 'nathan', 'enhanced', 'premium', 'ava', 'zoe', 'tom', 'karen', 'siri', 'natural'],
+
+    // Only allow these language codes (exact match)
+    TTS_ALLOWED_LANGS: ['en-US'],
 
     // Rewind/Forward skip duration (in seconds)
     SKIP_DURATION: 15,
