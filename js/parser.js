@@ -161,6 +161,133 @@ const Parser = {
     },
 
     /**
+     * Parse content into chunks for TTS with pause information
+     * @param {string} rawContent - Raw markdown/text content
+     * @param {string} fileName - File name to determine type
+     * @returns {Array<object>} Array of chunks with text and pauseAfter
+     */
+    parseIntoChunks(rawContent, fileName) {
+        const ext = fileName.split('.').pop().toLowerCase();
+        const chunks = [];
+        const pauses = CONFIG.TTS_PAUSES;
+
+        if (ext === 'md') {
+            // Parse markdown line by line
+            const lines = rawContent.split('\n');
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmedLine = line.trim();
+
+                if (!trimmedLine) {
+                    continue; // Skip empty lines
+                }
+
+                // Detect line type and assign pause
+                let type = 'paragraph';
+                let pauseAfter = pauses.paragraph;
+                let text = trimmedLine;
+
+                // Check for headers
+                if (trimmedLine.startsWith('#### ')) {
+                    type = 'h4';
+                    pauseAfter = pauses.h4;
+                    text = trimmedLine.substring(5);
+                } else if (trimmedLine.startsWith('### ')) {
+                    type = 'h3';
+                    pauseAfter = pauses.h3;
+                    text = trimmedLine.substring(4);
+                } else if (trimmedLine.startsWith('## ')) {
+                    type = 'h2';
+                    pauseAfter = pauses.h2;
+                    text = trimmedLine.substring(3);
+                } else if (trimmedLine.startsWith('# ')) {
+                    type = 'h1';
+                    pauseAfter = pauses.h1;
+                    text = trimmedLine.substring(2);
+                }
+                // Check for list items
+                else if (trimmedLine.match(/^[-*+] /)) {
+                    type = 'listItem';
+                    pauseAfter = pauses.listItem;
+                    text = trimmedLine.substring(2);
+                } else if (trimmedLine.match(/^\d+\. /)) {
+                    type = 'listItem';
+                    pauseAfter = pauses.listItem;
+                    text = trimmedLine.replace(/^\d+\. /, '');
+                }
+                // Check for blockquotes
+                else if (trimmedLine.startsWith('> ')) {
+                    type = 'blockquote';
+                    pauseAfter = pauses.paragraph;
+                    text = trimmedLine.substring(2);
+                }
+                // Skip horizontal rules
+                else if (trimmedLine.match(/^[-*]{3,}$/)) {
+                    continue;
+                }
+
+                // Clean up markdown formatting from text
+                text = this.stripMarkdownFormatting(text);
+
+                if (text.trim()) {
+                    chunks.push({
+                        text: text.trim(),
+                        type,
+                        pauseAfter
+                    });
+                }
+            }
+        } else {
+            // Plain text: split on double newlines for paragraphs
+            const paragraphs = rawContent.split(/\n\n+/);
+
+            for (const para of paragraphs) {
+                const trimmed = para.trim();
+                if (trimmed) {
+                    // Check for single newlines within paragraph
+                    const lines = trimmed.split('\n');
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (line) {
+                            chunks.push({
+                                text: line,
+                                type: 'paragraph',
+                                pauseAfter: i === lines.length - 1 ? pauses.paragraph : pauses.newline
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        return chunks;
+    },
+
+    /**
+     * Strip markdown formatting from text (for TTS)
+     * @param {string} text - Text with markdown
+     * @returns {string} Plain text
+     */
+    stripMarkdownFormatting(text) {
+        return text
+            // Bold and italic
+            .replace(/\*\*\*(.*?)\*\*\*/g, '$1')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/___(.*?)___/g, '$1')
+            .replace(/__(.*?)__/g, '$1')
+            .replace(/_(.*?)_/g, '$1')
+            // Inline code
+            .replace(/`([^`]+)`/g, '$1')
+            // Links - keep the text, remove URL
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            // Clean up extra whitespace
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    /**
      * Split text into sentences for TTS
      * @param {string} text - Plain text
      * @returns {Array<string>} Array of sentences
@@ -186,7 +313,32 @@ const Parser = {
     },
 
     /**
-     * Estimate TTS duration
+     * Estimate TTS duration for chunks
+     * @param {Array<object>} chunks - Parsed chunks
+     * @param {number} rate - TTS rate (default 1.0)
+     * @returns {number} Estimated seconds
+     */
+    estimateChunksDuration(chunks, rate = 1.0) {
+        if (!chunks || chunks.length === 0) return 0;
+
+        let totalMs = 0;
+        const wordsPerMinute = 150 * rate;
+        const msPerWord = 60000 / wordsPerMinute;
+
+        for (const chunk of chunks) {
+            // Estimate speech time
+            const words = chunk.text.split(/\s+/).filter(w => w).length;
+            totalMs += words * msPerWord;
+
+            // Add pause time
+            totalMs += chunk.pauseAfter;
+        }
+
+        return Math.max(1, Math.round(totalMs / 1000));
+    },
+
+    /**
+     * Estimate TTS duration (legacy support)
      * @param {string} text - Plain text
      * @param {number} rate - TTS rate (default 1.0)
      * @returns {number} Estimated seconds

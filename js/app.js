@@ -6,6 +6,7 @@
 const App = {
     currentCategory: null,
     currentBook: null,
+    currentRawContent: null,  // Store raw content for TTS
     rootFolderId: null,
     categories: [],
     books: [],
@@ -68,6 +69,22 @@ const App = {
         document.getElementById('btn-stop').addEventListener('click', () => this.handleStop());
         document.getElementById('btn-speed').addEventListener('click', () => this.handleSpeedChange());
 
+        // Voice selector
+        const btnVoice = document.getElementById('btn-voice');
+        if (btnVoice) {
+            btnVoice.addEventListener('click', () => this.handleVoiceButtonClick());
+        }
+
+        // Voice selector overlay click to close
+        const voiceSelector = document.getElementById('voice-selector');
+        if (voiceSelector) {
+            voiceSelector.addEventListener('click', (e) => {
+                if (e.target === voiceSelector) {
+                    UI.hideVoiceSelector();
+                }
+            });
+        }
+
         // Progress bar click
         document.getElementById('player-bar').addEventListener('click', (e) => this.handleProgressBarClick(e));
     },
@@ -112,6 +129,7 @@ const App = {
         this.rootFolderId = null;
         this.currentCategory = null;
         this.currentBook = null;
+        this.currentRawContent = null;
         UI.showScreen('login');
         UI.showToast('Signed out');
     },
@@ -219,19 +237,21 @@ const App = {
         try {
             // Get file content
             const content = await Drive.getFileContent(book.id, book.mimeType);
+            this.currentRawContent = content;
 
-            // Parse content
+            // Parse content for display
             const parsed = Parser.parse(content, book.fileName);
 
             // Update UI
             UI.updateReaderContent(book, parsed.html);
             UI.resetPlayerDisplay();
 
-            // Initialize TTS
-            TTS.init(parsed.plainText, {
+            // Initialize TTS with raw content and filename
+            TTS.init(content, book.fileName, {
                 onProgress: (state) => this.handleTTSProgress(state),
                 onEnd: () => this.handleTTSEnd(),
-                onSaveProgress: (position, duration) => this.saveTTSProgress(position, duration)
+                onSaveProgress: (position, duration) => this.saveTTSProgress(position, duration),
+                onVoicesChanged: (voices, currentVoice) => this.handleVoicesChanged(voices, currentVoice)
             });
 
             // Restore previous position if any
@@ -251,6 +271,47 @@ const App = {
             UI.hideLoading();
             UI.showToast('Failed to load book');
         }
+    },
+
+    /**
+     * Handle voices changed (async load)
+     * @param {Array} voices - Available voices
+     * @param {SpeechSynthesisVoice} currentVoice - Currently selected voice
+     */
+    handleVoicesChanged(voices, currentVoice) {
+        UI.updateVoiceSelector(voices, currentVoice, (voiceName) => {
+            TTS.setVoice(voiceName);
+            UI.updatePlayerDisplay(TTS.getState());
+        });
+
+        // Update button text
+        if (currentVoice) {
+            const btnVoice = document.getElementById('btn-voice');
+            if (btnVoice) {
+                btnVoice.textContent = UI.shortenVoiceName(currentVoice.name);
+            }
+        }
+    },
+
+    /**
+     * Handle voice button click
+     */
+    handleVoiceButtonClick() {
+        // Update voice list with current selection
+        const voices = TTS.getVoices();
+        const currentVoice = TTS.getVoice();
+
+        if (voices.length === 0) {
+            UI.showToast('No voices available');
+            return;
+        }
+
+        UI.updateVoiceSelector(voices, currentVoice, (voiceName) => {
+            TTS.setVoice(voiceName);
+            UI.updatePlayerDisplay(TTS.getState());
+        });
+
+        UI.toggleVoiceSelector();
     },
 
     /**
@@ -352,17 +413,24 @@ document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
 
-// Handle visibility change to pause TTS when app goes to background
+// Handle visibility change - DON'T pause when screen dims (for driving use case)
+// We want the audio to continue playing
+// Only pause if user explicitly leaves the app
 document.addEventListener('visibilitychange', () => {
-    if (document.hidden && TTS.isPlaying) {
-        TTS.pause();
-        UI.updatePlayerDisplay(TTS.getState());
-    }
+    // Don't auto-pause anymore - let wake lock handle screen dimming
+    // User can manually pause if needed
 });
 
 // Save progress before page unload
 window.addEventListener('beforeunload', () => {
     if (TTS.isPlaying || TTS.isPaused) {
         TTS.saveProgress();
+    }
+});
+
+// Re-request wake lock when page becomes visible (in case it was released)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && TTS.isPlaying) {
+        TTS.requestWakeLock();
     }
 });

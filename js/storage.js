@@ -152,6 +152,22 @@ const Storage = {
     },
 
     /**
+     * Get TTS voice preference
+     * @returns {string|null} Voice name or null
+     */
+    getTTSVoice() {
+        return localStorage.getItem(CONFIG.STORAGE_KEYS.TTS_VOICE);
+    },
+
+    /**
+     * Save TTS voice preference
+     * @param {string} voiceName - Voice name
+     */
+    saveTTSVoice(voiceName) {
+        localStorage.setItem(CONFIG.STORAGE_KEYS.TTS_VOICE, voiceName);
+    },
+
+    /**
      * Clear all storage (logout)
      */
     clearAll() {

@@ -52,7 +52,10 @@ const UI = {
         playerBar: document.getElementById('player-bar'),
         playerBarFill: document.getElementById('player-bar-fill'),
         btnPlayPause: document.getElementById('btn-play-pause'),
-        btnSpeed: document.getElementById('btn-speed')
+        btnSpeed: document.getElementById('btn-speed'),
+        btnVoice: document.getElementById('btn-voice'),
+        voiceSelector: document.getElementById('voice-selector'),
+        voiceList: document.getElementById('voice-list')
     },
 
     currentScreen: 'login',
@@ -295,6 +298,96 @@ const UI = {
         this.elements.playerBarFill.style.width = `${state.percent}%`;
         this.elements.btnPlayPause.textContent = state.isPlaying ? '⏸' : '▶';
         this.elements.btnSpeed.textContent = `${state.rate}x`;
+
+        // Update voice button if voice changed
+        if (state.voice && this.elements.btnVoice) {
+            this.elements.btnVoice.textContent = this.shortenVoiceName(state.voice);
+        }
+    },
+
+    /**
+     * Shorten voice name for display
+     * @param {string} voiceName - Full voice name
+     * @returns {string} Shortened name
+     */
+    shortenVoiceName(voiceName) {
+        // Extract just the main name, remove parenthetical descriptions
+        let name = voiceName.split('(')[0].trim();
+        // Remove common prefixes
+        name = name.replace(/^(Microsoft |Google |Apple )/, '');
+        // Truncate if too long
+        if (name.length > 10) {
+            name = name.substring(0, 8) + '..';
+        }
+        return name;
+    },
+
+    /**
+     * Update voice selector with available voices
+     * @param {Array} voices - Available voices
+     * @param {SpeechSynthesisVoice} currentVoice - Currently selected voice
+     * @param {Function} onVoiceSelect - Callback when voice is selected
+     */
+    updateVoiceSelector(voices, currentVoice, onVoiceSelect) {
+        if (!this.elements.voiceList) return;
+
+        this.elements.voiceList.innerHTML = '';
+
+        voices.forEach(voice => {
+            const item = document.createElement('div');
+            item.className = 'voice-item' + (currentVoice && voice.name === currentVoice.name ? ' selected' : '');
+            item.dataset.voiceName = voice.name;
+
+            const name = document.createElement('div');
+            name.className = 'voice-item-name';
+            name.textContent = voice.name.split('(')[0].trim();
+
+            const lang = document.createElement('div');
+            lang.className = 'voice-item-lang';
+            lang.textContent = voice.lang;
+
+            item.appendChild(name);
+            item.appendChild(lang);
+
+            item.addEventListener('click', () => {
+                onVoiceSelect(voice.name);
+                this.hideVoiceSelector();
+            });
+
+            this.elements.voiceList.appendChild(item);
+        });
+
+        // Update button text
+        if (currentVoice && this.elements.btnVoice) {
+            this.elements.btnVoice.textContent = this.shortenVoiceName(currentVoice.name);
+        }
+    },
+
+    /**
+     * Show voice selector
+     */
+    showVoiceSelector() {
+        if (this.elements.voiceSelector) {
+            this.elements.voiceSelector.classList.remove('hidden');
+        }
+    },
+
+    /**
+     * Hide voice selector
+     */
+    hideVoiceSelector() {
+        if (this.elements.voiceSelector) {
+            this.elements.voiceSelector.classList.add('hidden');
+        }
+    },
+
+    /**
+     * Toggle voice selector visibility
+     */
+    toggleVoiceSelector() {
+        if (this.elements.voiceSelector) {
+            this.elements.voiceSelector.classList.toggle('hidden');
+        }
     },
 
     /**

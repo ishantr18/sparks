@@ -14,7 +14,7 @@ const CONFIG = {
     // ===========================================
     // PASTE YOUR GOOGLE CLIENT ID HERE
     // ===========================================
-    GOOGLE_CLIENT_ID: '627209789527-n3tu4t54itfpfn2d0vtg7l9kmiua08lh.apps.googleusercontent.com',
+    GOOGLE_CLIENT_ID: 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com',
 
     // Google API settings (don't change these)
     GOOGLE_API_KEY: '', // Not needed for OAuth flow
@@ -30,6 +30,23 @@ const CONFIG = {
     TTS_DEFAULT_RATE: 1.0,
     TTS_RATES: [0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
 
+    // TTS pause durations (in milliseconds)
+    TTS_PAUSES: {
+        h1: 2000,
+        h2: 1500,
+        h3: 1200,
+        h4: 1000,
+        paragraph: 800,
+        newline: 400,
+        listItem: 500
+    },
+
+    // Voices to exclude (case-insensitive partial match)
+    TTS_EXCLUDED_VOICES: ['samantha'],
+
+    // Preferred voices (in order of preference, case-insensitive partial match)
+    TTS_PREFERRED_VOICES: ['enhanced', 'premium', 'ava', 'daniel', 'karen', 'siri', 'google', 'natural'],
+
     // Rewind/Forward skip duration (in seconds)
     SKIP_DURATION: 15,
 
@@ -41,7 +58,8 @@ const CONFIG = {
         ROOT_FOLDER_ID: 'booksummary_root_folder_id',
         USER_PROGRESS: 'booksummary_progress',
         USER_INFO: 'booksummary_user_info',
-        TTS_RATE: 'booksummary_tts_rate'
+        TTS_RATE: 'booksummary_tts_rate',
+        TTS_VOICE: 'booksummary_tts_voice'
     }
 };
 
