@@ -64,10 +64,11 @@ const TTS = {
         const loadVoices = () => {
             const allVoices = this.synth.getVoices();
 
-            // Filter out excluded voices and non-English voices
+            // Filter out excluded voices and non-allowed languages
             this.availableVoices = allVoices.filter(v => {
-                // Must be English
-                if (!v.lang.startsWith('en')) return false;
+                // Must be in allowed languages list (exact match)
+                const allowedLangs = CONFIG.TTS_ALLOWED_LANGS || ['en-US'];
+                if (!allowedLangs.includes(v.lang)) return false;
 
                 // Check against excluded voices
                 const nameLower = v.name.toLowerCase();
