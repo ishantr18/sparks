@@ -127,11 +127,24 @@
                     <span class="player-time" id="player-duration">0:00</span>
                 </div>
                 <div class="player-controls">
+                    <button class="voice-btn" id="btn-voice">Voice</button>
                     <button class="speed-btn" id="btn-speed">1.0x</button>
                     <button class="player-btn player-btn-secondary" id="btn-rewind">⏪</button>
                     <button class="player-btn player-btn-primary" id="btn-play-pause">▶</button>
                     <button class="player-btn player-btn-secondary" id="btn-forward">⏩</button>
                     <button class="player-btn player-btn-secondary" id="btn-stop">⏹</button>
+                </div>
+            </div>
+
+            <!-- Voice Selector Modal -->
+            <div class="voice-selector-overlay hidden" id="voice-selector">
+                <div class="voice-selector-content">
+                    <div class="voice-selector-header">
+                        <h3>Select Voice</h3>
+                    </div>
+                    <div class="voice-list" id="voice-list">
+                        <!-- Voice items populated by JS -->
+                    </div>
                 </div>
             </div>
         </div>
