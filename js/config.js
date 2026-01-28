@@ -14,7 +14,7 @@ const CONFIG = {
     // ===========================================
     // PASTE YOUR GOOGLE CLIENT ID HERE
     // ===========================================
-    GOOGLE_CLIENT_ID: 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com',
+    GOOGLE_CLIENT_ID: '627209789527-n3tu4t54itfpfn2d0vtg7l9kmiua08lh.apps.googleusercontent.com',
 
     // Google API settings (don't change these)
     GOOGLE_API_KEY: '', // Not needed for OAuth flow
