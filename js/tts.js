@@ -66,9 +66,12 @@ const TTS = {
 
             // Filter out excluded voices and non-allowed languages
             this.availableVoices = allVoices.filter(v => {
-                // Must be in allowed languages list (exact match)
-                const allowedLangs = CONFIG.TTS_ALLOWED_LANGS || ['en-US'];
-                if (!allowedLangs.includes(v.lang)) return false;
+                // Normalize language code for comparison (handle en-US, en_US, en-us)
+                const voiceLang = v.lang.replace('_', '-').toLowerCase();
+                const allowedLangs = (CONFIG.TTS_ALLOWED_LANGS || ['en-US'])
+                    .map(l => l.replace('_', '-').toLowerCase());
+
+                if (!allowedLangs.includes(voiceLang)) return false;
 
                 // Check against excluded voices
                 const nameLower = v.name.toLowerCase();
@@ -79,6 +82,10 @@ const TTS = {
                 }
                 return true;
             });
+
+            // Debug: log available voices to console
+            console.log('Available voices after filter:', this.availableVoices.map(v => `${v.name} (${v.lang})`));
+            console.log('All voices:', allVoices.map(v => `${v.name} (${v.lang})`));
 
             // Sort by preference
             this.availableVoices.sort((a, b) => {
